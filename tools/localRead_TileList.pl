@@ -41,6 +41,9 @@ my @mysorted = sort { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1]  || $a->[2] <=>
 # Now have sorted array of arrays of [z,x,y]
 
 
+# duplicate last line makes things easier - late night hack?
+push @mysorted, $mysorted[$#mysorted];
+
 my $workingline = 0;
 my $numarray = $mysorted[$workingline++];
 my $last = $numarray;
@@ -50,7 +53,7 @@ my $last = $numarray;
 
 my $z = 0;
 print "localtiles = {"; 
-while ( $workingline < $#mysorted ){
+while ( $workingline <= $#mysorted ){
     dz($z);
     $z++;
 }
@@ -65,7 +68,7 @@ sub dz{
     dx($c);									# 	within same dz keep calling dx
     $c++;
   }while( $workingline <= $#mysorted && $numarray->[0] == $last->[0] );
-  print "}";									# end dz
+  print "}";									# end z
 }
 
 
@@ -73,12 +76,12 @@ sub dz{
 sub dx{		
   my $c = 0;
   print "," if $_[0]>0;								# ,
-  print "$numarray->[1]:["; 							#start x
+  print "$numarray->[1]:["; 							# start x
   do{
     dy($c);									# within same dx keep calling dy
     $c++;
-  }while( $workingline <= $#mysorted && $numarray->[1] == $last->[1] );
-  print "]\n";									# end dx
+  }while( $workingline <= $#mysorted && $numarray->[0] == $last->[0] && $numarray->[1] == $last->[1] );
+  print "]\n";									# end x
 }
 
 
@@ -90,9 +93,7 @@ sub dy{
       $last = $numarray;
       $numarray = $mysorted[$workingline++];
   }while( $workingline <= $#mysorted && $numarray->[2] == 1+$last->[2] );	# within consecutive dy's - find edges
-  
-  # watch out for last record special case:
-  if(  $workingline <= $#mysorted ){  	print ",$last->[2]]" 		}	# end y
-  else {  				print ",$numarray->[2]]"	};
 
+  print ",$last->[2]]";								# end y
+  
 }
