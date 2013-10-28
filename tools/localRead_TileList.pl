@@ -1,20 +1,16 @@
 #!/usr/bin/perl
 # localRead_TileList.pl
-# Author: Justin Jones, 2012
+# Author: Justin Jones, 2012, 2013
 #
 # Released into the Public Domain.
 #
 #
 # USE:
-# cd tiles_top_directory  
-# ls */*/* | sort -n | ./localRead_TileList.pl >localtiles.js 
 #
-#
-# note: Feel free to leave out the 'sort -n' command. Doing so should only result 
-#       in a very slightly less efficient object created in rare cases.
-#       sort -n does so numerically.  ls will sort alphabetically resulting in split groupings at 9, 99, 999, etc..
-# i.e.  ls */*/* | ./localRead_TileList.pl >localtiles.js 
-#
+# From directory containing tile directory heiarchy:
+#  localRead_TileList.pl >localtiles.js 
+#or
+#  perl localRead_TileList.pl >localtiles.js 
 #
 #
 # Output:
@@ -27,60 +23,76 @@
 #          <script type="text/javascript" src="tiles/localtiles.js"></script>
 #
 #
-#  Tested for 4k definition file.
 #
 
 use strict;
+use warnings;
 
-my $line = <>;
-my @numarray = ( $line =~ m/(\d+)/g);
-my @last = @numarray;
+my @tiles;
+my @files = glob("*/*/*.png");
+foreach my $file (@files) {
+        if($file =~ m/(\d+)\D+(\d+)\D+(\d+)\.png/){	  
+	  push @tiles,[$1,$2,$3];
+        }
+    }
+    
+my @mysorted = sort { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1]  || $a->[2] <=> $b->[2]    } @tiles;  
+
+# Now have sorted array of arrays of [z,x,y]
+
+
+my $workingline = 0;
+my $numarray = $mysorted[$workingline++];
+my $last = $numarray;
+
+
+
 
 my $z = 0;
 print "localtiles = {"; 
-while ( !eof){
+while ( $workingline < $#mysorted ){
     dz($z);
     $z++;
 }
-print "};"; 
+print "};\n"; 
 
 
 sub dz{
   my $c = 0;
-  print "," if $_[0]>0;
-  print "$numarray[0]:{\n";
+  print "," if $_[0]>0;								# ,
+  print "$numarray->[0]:{\n";							# start z
   do{
-    dx($c);
+    dx($c);									# 	within same dz keep calling dx
     $c++;
-  }while( $numarray[0] == $last[0] );
-  print "}";
+  }while( $workingline <= $#mysorted && $numarray->[0] == $last->[0] );
+  print "}";									# end dz
 }
 
 
-sub dx{
+
+sub dx{		
   my $c = 0;
-  print "," if $_[0]>0;
-  print "$numarray[1]:["; 
+  print "," if $_[0]>0;								# ,
+  print "$numarray->[1]:["; 							#start x
   do{
-    dy($c);
+    dy($c);									# within same dx keep calling dy
     $c++;
-  }while( $numarray[1] == $last[1] );
-  print "]\n";
+  }while( $workingline <= $#mysorted && $numarray->[1] == $last->[1] );
+  print "]\n";									# end dx
 }
+
 
 
 sub dy{
-  print "," if $_[0]>0;
-  print "[$numarray[2]";
+  print "," if $_[0]>0;								# ,
+  print "[$numarray->[2]";							# start y
   do{
-      #print "\t\t\t\t$line";
-
-      @last = @numarray;
-
-      $line = <>;
-      @numarray = ( $line =~ m/(\d+)/g);
-  }while( !eof && $numarray[2] == 1+$last[2] );
-  print ",$last[2]]";
-
+      $last = $numarray;
+      $numarray = $mysorted[$workingline++];
+  }while( $workingline <= $#mysorted && $numarray->[2] == 1+$last->[2] );	# within consecutive dy's - find edges
+  
+  # watch out for last record special case:
+  if(  $workingline <= $#mysorted ){  	print ",$last->[2]]" 		}	# end y
+  else {  				print ",$numarray->[2]]"	};
 
 }
